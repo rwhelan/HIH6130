@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+//	"fmt"
 	"syscall"
 	"time"
 	"encoding/json"
+	"net/http"
 	)
 
 var I2C_SLAVE	int = 0x0703
@@ -90,17 +91,36 @@ func (self *HIH6130) Daemon() {
 }
 
 
+func webHandler(w http.ResponseWriter, r *http.Request) {
+
+        js, err := json.MarshalIndent(sensor, "", "    ")
+        if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+                return
+        }
+        w.Header().Set("Content-Type", "application/json")
+        w.Write(js)
+}
+
+var sensor *HIH6130
+
 func main() {
-	sensor := &HIH6130{ i2cAddr: SensorAddr,
+	sensor = &HIH6130{ i2cAddr: SensorAddr,
                             bus: &I2cBus{devpath: I2CBusPath}}
 	sensor.Init()
 	sensor.Daemon()
 
 
-	for i := 5; i > 0; i-- {
+/*	for i := 5; i > 0; i-- {
 		time.Sleep(5 * time.Second)
 		js, _ := json.MarshalIndent(sensor, "", "    ")
 		fmt.Println(string(js))
 
 	}
+*/
+
+	webMux := http.NewServeMux()
+        webMux.HandleFunc("/", webHandler)
+        http.ListenAndServe(":8000", webMux)
+
 }
