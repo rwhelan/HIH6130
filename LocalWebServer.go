@@ -55,7 +55,7 @@ type HIH6130 struct {
 	Temperature_F	float32
 	Humidity	float32
 	SensorData	SensorBytes	`json:"RawSensorData"`
-	Status		int
+	Status		int		`json:"SensorStatus"`
 	Time		int64		`json:"SampleTime"`
 	i2cAddr		int
 	bus		*I2cBus
@@ -85,7 +85,7 @@ func (self *HIH6130) Daemon() {
 		for {
 //			fmt.Println("Daemon Running")
 			self.Read()
-			time.Sleep(5 * time.Second)
+			time.Sleep(15 * time.Second)
 		}
 	}()
 }
