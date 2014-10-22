@@ -1,26 +1,17 @@
 package main
 
 import (
-//	"fmt"
 	"syscall"
 	"time"
 	"encoding/json"
 	"net/http"
 	)
 
+
 var I2C_SLAVE	int = 0x0703
 var I2CBusPath	string = "/dev/i2c-1"
 var SensorAddr	int = 0x27
 
-type SensorBytes []byte
-
-func (self SensorBytes) MarshalJSON() ([]byte, error) {
-        buf := make([]int, len(self))
-        for i, c := range self {
-                buf[i] = int(c)
-        }
-        return json.Marshal(buf)
-}
 
 type I2cBus struct {
 	devfd		int
@@ -38,16 +29,25 @@ func (self I2cBus) SetAddr(addr int) error {
 	return syscall.Errno(errno)
 }
 
-
 func (self I2cBus) Write(buf []byte) (int, error) {
 	return syscall.Write(self.devfd, buf)
 }
-
 
 func (self I2cBus) Read(buf []byte) (int, error) {
 	return syscall.Read(self.devfd, buf)
 }
 
+
+
+type SensorBytes []byte
+
+func (self SensorBytes) MarshalJSON() ([]byte, error) {
+        buf := make([]int, len(self))
+        for i, c := range self {
+                buf[i] = int(c)
+        }
+        return json.Marshal(buf)
+}
 
 
 type HIH6130 struct {
@@ -83,7 +83,6 @@ func (self *HIH6130) Read() {
 func (self *HIH6130) Daemon() {
 	go func() {
 		for {
-//			fmt.Println("Daemon Running")
 			self.Read()
 			time.Sleep(15 * time.Second)
 		}
@@ -102,22 +101,13 @@ func webHandler(w http.ResponseWriter, r *http.Request) {
         w.Write(js)
 }
 
-var sensor *HIH6130
 
+var sensor *HIH6130
 func main() {
 	sensor = &HIH6130{ i2cAddr: SensorAddr,
                             bus: &I2cBus{devpath: I2CBusPath}}
 	sensor.Init()
 	sensor.Daemon()
-
-
-/*	for i := 5; i > 0; i-- {
-		time.Sleep(5 * time.Second)
-		js, _ := json.MarshalIndent(sensor, "", "    ")
-		fmt.Println(string(js))
-
-	}
-*/
 
 	webMux := http.NewServeMux()
         webMux.HandleFunc("/", webHandler)
